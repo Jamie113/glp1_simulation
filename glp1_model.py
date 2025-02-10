@@ -1,31 +1,56 @@
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 
-# Inputs
-dose = 5  # mg per dose
 half_life = 120  # hours (~5 days)
 lambda_decay = np.log(2) / half_life  # Elimination rate constant
+total_hours = 1200  # Simulate for 50 days (~7 weeks after full titration)
 
-# Time array (simulation is for for 50 days in 1-hour steps)
-time_hours = np.arange(0, 1200, 1)
-concentration = dose * np.exp(-lambda_decay * time_hours)
+# Titration schedule (dose increases every 4 weeks)
+titration_schedule = {
+    0: 2.5,  # Weeks 1-4
+    4: 5.0,  # Weeks 5-8
+    8: 7.5,  # Weeks 9-12
+    12: 10.0  # Weeks 13+
+}
 
-# Simulate weekly injections
-weekly_times = np.arange(0, 1200, 7 * 24)  # Every 7 days (168 hours)
+time_hours = np.arange(0, total_hours, 1)
+
+weekly_doses = np.zeros_like(time_hours, dtype=float)
+
+for start_week, dose in titration_schedule.items():
+    start_time = start_week * 7 * 24 
+    weekly_doses[time_hours >= start_time] = dose 
+
+weekly_times = np.arange(0, total_hours, 7 * 24) 
 cumulative_concentration = np.zeros_like(time_hours, dtype=float)
 
+# Store individual dose decays
+dose_decay_curves = []
+
 for t_dose in weekly_times:
-    cumulative_concentration += dose * np.exp(-lambda_decay * (time_hours - t_dose)) * (time_hours >= t_dose)
+    dose_at_t = weekly_doses[t_dose]  
+    decay_curve = dose_at_t * np.exp(-lambda_decay * (time_hours - t_dose)) * (time_hours >= t_dose)
+    
+    dose_decay_curves.append(decay_curve)
+    
+    cumulative_concentration += decay_curve
 
 # Plot the results
 plt.figure(figsize=(10, 5))
-plt.plot(time_hours / 24, concentration, label="Single Dose", linestyle="dashed")
-plt.plot(time_hours / 24, cumulative_concentration, label="Weekly Injections", linewidth=2)
+
+# Cumulative concentration (actual titration model)
+plt.plot(time_hours / 24, cumulative_concentration, label="Weekly Injections with Titration", linewidth=2)
+
+# Individual dose decay curves
+for decay_curve in dose_decay_curves:
+    plt.plot(time_hours / 24, decay_curve, linestyle="dashed", alpha=0.5, color="gray")
+
+# Steady-state maximum
 plt.axhline(y=max(cumulative_concentration), color="red", linestyle="dotted", label="Steady-State Max")
+
 plt.xlabel("Time (Days)")
-plt.ylabel("Drug Concentration (mg)")
-plt.title("GLP-1 Drug Concentration Over Time")
+plt.ylabel("Drug concentration (mg)")
+plt.title("GLP-1 concentration over time (with dose titration & decay")
 plt.legend()
 plt.grid(True)
 plt.show()
