@@ -1,3 +1,5 @@
+# This version does not contain the absorption rate which is in glp1_model_absorption.py
+
 import numpy as np
 import matplotlib.pyplot as plt
 
